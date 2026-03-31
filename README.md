@@ -1,47 +1,53 @@
 # Sentiment Analysis API
 
-A lightweight REST API that classifies text as **POSITIVE** or **NEGATIVE** using a fine-tuned DistilBERT transformer model from Hugging Face.
+A FastAPI service that classifies text sentiment with Hugging Face transformers.
 
-**Stack:** FastAPI · Hugging Face Transformers · PyTorch · Uvicorn
+## Overview
 
----
+- Single-text and batch prediction endpoints
+- Startup model loading with a health endpoint
+- Dockerfile included for containerized runs
 
-## Quick Start (local)
+The current app uses `cardiffnlp/twitter-roberta-base-sentiment-latest` through the Hugging Face `pipeline` API.
+
+## Stack
+
+- Python
+- FastAPI
+- Hugging Face Transformers
+- PyTorch
+- Uvicorn
+- Docker
+
+## API Endpoints
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `POST` | `/predict` | Predict sentiment for one text |
+| `POST` | `/predict/batch` | Predict sentiment for up to 32 texts |
+| `GET` | `/health` | Check service and model readiness |
+
+## Quick Start
+
+### Local
 
 ```bash
-# 1. Create a virtual environment
-python -m venv .venv && source .venv/bin/activate
-
-# 2. Install dependencies
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# 3. Run the server
 uvicorn app:app --reload --port 8000
 ```
 
-The first launch downloads the model (~260 MB) and caches it locally.
+Open `http://localhost:8000/docs` for the interactive API docs.
 
-Open the interactive docs at **http://localhost:8000/docs**.
-
----
-
-## Quick Start (Docker)
+### Docker
 
 ```bash
-# Build (downloads the model into the image)
 docker build -t sentiment-api .
-
-# Run
 docker run -p 8000:8000 sentiment-api
 ```
 
----
-
-## API Reference
-
-### `POST /predict`
-
-Analyze a single text.
+## Example Request
 
 ```bash
 curl -X POST http://localhost:8000/predict \
@@ -49,54 +55,29 @@ curl -X POST http://localhost:8000/predict \
   -d '{"text": "This movie was absolutely fantastic!"}'
 ```
 
-Response:
+Example response:
 
 ```json
 {
   "text": "This movie was absolutely fantastic!",
-  "label": "POSITIVE",
+  "label": "positive",
   "score": 0.9998,
-  "model": "distilbert-base-uncased-finetuned-sst-2-english"
+  "model": "cardiffnlp/twitter-roberta-base-sentiment-latest"
 }
 ```
 
-### `POST /predict/batch`
+## Project Files
 
-Analyze up to 32 texts in one call.
-
-```bash
-curl -X POST http://localhost:8000/predict/batch \
-  -H "Content-Type: application/json" \
-  -d '{"texts": ["I love it!", "Terrible experience."]}'
-```
-
-### `GET /health`
-
-Check service readiness.
-
-```bash
-curl http://localhost:8000/health
-```
-
----
-
-## Configuration
-
-| Environment Variable | Default | Description |
-|---|---|---|
-| `PORT` | `8000` | Server port |
-
-To use a **GPU**, change `device=-1` to `device=0` in `app.py`.
-
----
-
-## Project Structure
-
-```
+```text
 sentiment-api/
-├── app.py              # FastAPI application
-├── requirements.txt    # Python dependencies
-├── Dockerfile          # Multi-stage Docker build
+├── app.py
+├── requirements.txt
+├── Dockerfile
 ├── .dockerignore
 └── README.md
 ```
+
+## Notes
+
+- The first startup downloads the model and can take longer than later runs.
+- The app is configured for CPU by default. Change `device=-1` to `device=0` in `app.py` if you want GPU inference.
